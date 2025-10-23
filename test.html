@@ -1,0 +1,1418 @@
+import pandas as pd
+from datetime import datetime, timedelta
+import json
+import re
+from typing import List, Dict, Any
+from collections import Counter
+import ssl
+import certifi
+ssl_context = ssl.create_default_context(cafile=certifi.where())
+import streamlit as st
+import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Initialize random seed and variation modes
+seed = random.randint(1000, 9999)
+variation_modes = [
+    "make it more conversational and story-like",
+    "summarize with punchier headlines", 
+    "use a witty, newsletter-style tone",
+    "make it sound more like a casual weekend brief",
+    "focus more on insights than news",
+]
+
+# Must be first Streamlit command
+st.set_page_config(
+    page_title="CreatorPulse - Newsletter Curator",
+    page_icon="📰",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Enhanced Custom CSS for beautiful UI
+st.markdown("""
+    <style>
+    /* Import modern font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    
+    /* Global Styles */
+    * {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .main > div {
+        padding-top: 2rem;
+    }
+    
+    /* Custom Color Scheme */
+    :root {
+        --primary-color: #667eea;
+        --secondary-color: #764ba2;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --dark-bg: #1e293b;
+        --light-bg: #f8fafc;
+    }
+    
+    /* Gradient Background for Header */
+    .main-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+    
+    .main-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .main-header p {
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
+        opacity: 0.95;
+    }
+    
+    /* Beautiful Cards */
+    .custom-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .custom-card:hover {
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .card-header {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* Status Badges */
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .badge-success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .badge-warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .badge-info {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .badge-danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    /* Enhanced Buttons */
+    .stButton > button {
+        width: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        color: white !important;
+    }
+    
+    /* Fix for disabled button text */
+    .stButton > button:disabled {
+        background: #cbd5e1;
+        color: #64748b !important;
+    }
+    
+    /* Metric Cards */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+    
+    /* Progress Bar Styling */
+    .stProgress > div > div {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+    }
+    
+    /* Subscriber Card */
+    .subscriber-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+    }
+    
+    .subscriber-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    /* Source Card */
+    .source-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        margin: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+    }
+    
+    .source-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
+    }
+    
+    /* Trend Card */
+    .trend-card {
+        background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border-left: 5px solid #10b981;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin: 1rem 0;
+    }
+    
+    .trend-keyword {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #10b981;
+        margin-bottom: 0.5rem;
+    }
+    
+    .trend-mentions {
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+    
+    /* Input Field Styling */
+    .stTextInput > div > div > input,
+    .stTextArea > div > div > textarea {
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Expander Styling */
+    .streamlit-expanderHeader {
+        background: linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 8px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    [data-testid="stSidebar"] * {
+        color: white !important;
+    }
+    
+    /* Info/Warning/Success Boxes */
+    .stAlert {
+        border-radius: 10px;
+        border-left: 5px solid;
+    }
+    
+    /* Loading Spinner */
+    .stSpinner > div {
+        border-top-color: #667eea !important;
+    }
+    
+    /* Checklist Item */
+    .checklist-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: white;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .checklist-item.completed {
+        background: #d1fae5;
+        border-left: 4px solid #10b981;
+    }
+    
+    .checklist-item.pending {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+    }
+    
+    /* Email Preview */
+    .email-preview {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        font-family: Georgia, serif;
+    }
+    
+    /* Action Button Group */
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+    
+    /* Stats Card */
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+    
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+    }
+    
+    .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Animation */
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-slide-in {
+        animation: slideIn 0.5s ease-out;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #64748b;
+    }
+    
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Timeline */
+    .timeline-item {
+        border-left: 3px solid #667eea;
+        padding-left: 1.5rem;
+        margin-left: 1rem;
+        padding-bottom: 1.5rem;
+        position: relative;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 0;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #667eea;
+        border: 3px solid white;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Initialize session state with error handling
+def init_session_state():
+    """Initialize all session state variables."""
+    defaults = {
+        'sources': [],
+        'style_samples': [],
+        'generated_draft': None,
+        'trends': [],
+        'feedback_history': [],
+        'scraped_content': [],
+        'initialized': True,
+        'admin_email': '',
+        'admin_password': '',
+        'subscribers': [],
+        'onboarding_completed': False
+    }
+    
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+# Call initialization
+init_session_state()
+
+# Simple email sending function
+def send_email_simple(sender_email: str, sender_password: str, recipient_email: str, 
+                     subject: str, body: str) -> tuple:
+    """Simple email sending for Gmail."""
+    try:
+        message = MIMEMultipart()
+        message["From"] = sender_email
+        message["To"] = recipient_email
+        message["Subject"] = subject
+        message.attach(MIMEText(body, "plain"))
+        
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(message)
+        server.quit()
+        
+        return (True, f"✅ Sent to {recipient_email}")
+        
+    except smtplib.SMTPAuthenticationError:
+        return (False, f"❌ Authentication failed. Check your email/password for {recipient_email}")
+    except Exception as e:
+        return (False, f"❌ Failed to send to {recipient_email}: {str(e)}")
+
+def send_to_all_subscribers(subject: str, body: str) -> Dict[str, Any]:
+    """Send newsletter to all subscribers."""
+    if not st.session_state.get('admin_email') or not st.session_state.get('admin_password'):
+        return {
+            'success': False,
+            'message': '⚠️ Please save your Gmail settings first in the Recipients tab',
+            'sent': 0,
+            'failed': 0,
+            'results': []
+        }
+    
+    if not st.session_state.subscribers:
+        return {
+            'success': False,
+            'message': '⚠️ No subscribers added',
+            'sent': 0,
+            'failed': 0,
+            'results': []
+        }
+    
+    sent_count = 0
+    failed_count = 0
+    results = []
+    
+    for subscriber in st.session_state.subscribers:
+        success, message = send_email_simple(
+            sender_email=st.session_state.admin_email,
+            sender_password=st.session_state.admin_password,
+            recipient_email=subscriber['email'],
+            subject=subject,
+            body=body
+        )
+        
+        results.append(message)
+        
+        if success:
+            sent_count += 1
+        else:
+            failed_count += 1
+    
+    return {
+        'success': True,
+        'message': f'✅ Sent to {sent_count}/{len(st.session_state.subscribers)} subscribers',
+        'sent': sent_count,
+        'failed': failed_count,
+        'results': results
+    }
+
+# Groq LLM API call
+def call_llm(prompt: str, max_tokens: int = 2000) -> str:
+    """Call Groq API with Llama model."""
+    try:
+        from groq import Groq
+        
+        client = Groq(api_key="                                   ")
+        
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature = 0.7 + random.uniform(-0.1, 0.15),
+            max_tokens=max_tokens,
+        )
+        
+        return chat_completion.choices[0].message.content
+        
+    except ImportError:
+        return "⚠️ Groq library not installed. Please run: pip install groq"
+    except Exception as e:
+        return f"⚠️ Error calling Groq API: {str(e)}"
+
+def scrape_youtube_channel(channel_id: str) -> List[Dict]:
+    """Scrape YouTube using RSS feed."""
+    try:
+        import feedparser
+        import requests
+        
+        channel_id = channel_id.replace('@', '').replace('https://youtube.com/', '').replace('https://www.youtube.com/', '')
+        
+        rss_urls = [
+            f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}",
+            f"https://www.youtube.com/feeds/videos.xml?user={channel_id}"
+        ]
+        
+        results = []
+        
+        for rss_url in rss_urls:
+            try:
+                response = requests.get(rss_url, timeout=10)
+                if response.status_code == 200:
+                    feed = feedparser.parse(response.content)
+                    
+                    if feed.entries:
+                        for entry in feed.entries[:10]:
+                            results.append({
+                                "source": channel_id,
+                                "type": "youtube",
+                                "content": f"{entry.get('title', 'Video')}: {entry.get('summary', '')[:300]}",
+                                "url": entry.get('link', ''),
+                                "timestamp": entry.get('published', datetime.now().isoformat()),
+                                "engagement": 0
+                            })
+                        return results
+            except:
+                continue
+        
+        return [{
+            "source": channel_id,
+            "type": "youtube",
+            "content": f"Demo video from {channel_id} about content creation",
+            "url": f"https://youtube.com/{channel_id}",
+            "timestamp": datetime.now().isoformat(),
+            "engagement": 0
+        }]
+        
+    except Exception as e:
+        return []
+
+def detect_trends(content_items: List[Dict]) -> List[Dict]:
+    """Detect emerging trends from content."""
+    if not content_items:
+        return []
+    
+    all_words = []
+    for item in content_items:
+        words = re.findall(r'\b[a-zA-Z]{4,}\b', item.get('content', '').lower())
+        all_words.extend(words)
+    
+    word_freq = Counter(all_words)
+    
+    stopwords = {'this', 'that', 'with', 'from', 'have', 'been', 'were', 'their', 'is', 'the','Here', 
+                 'there', 'about', 'when', 'will', 'them', 'than', 'more', 'some', 'could','Links','Link', 
+                 'other', 'into', 'time', 'only', 'over', 'also', 'just', 'very', 'know', 'Updates','Channel', 
+                 'like', 'even', 'much', 'such', 'make'}
+    
+    filtered_freq = {k: v for k, v in word_freq.items() if k not in stopwords and v > 1}
+    top_trends = sorted(filtered_freq.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    trends = []
+    for keyword, count in top_trends:
+        trends.append({
+            "keyword": keyword.capitalize(),
+            "mentions": count,
+            "description": f"Trending topic with {count} mentions across your curated sources",
+            "related_sources": [item['source'] for item in content_items if keyword in item.get('content', '').lower()][:3]
+        })
+    
+    return trends
+
+def generate_newsletter_draft(content_items, trends, style_samples):
+    """Generate newsletter draft using LLM."""
+    content_summary = "\n\n".join([f"- [{item['type'].upper()}] {item['content'][:200]}... (from {item['source']})" for item in content_items[:10]])
+    trends_summary = "\n".join([f"- {t['keyword']}: {t['description']}" for t in trends[:3]])
+    
+    style_ref = "\n\n".join([f"Sample {idx+1}:\n{text}" for idx, text in enumerate(style_samples)])
+
+    variation = random.choice(variation_modes) 
+    
+    prompt = f"""
+You are a newsletter content curator.
+
+STYLE REFERENCE:
+{style_ref}
+
+Variation Mode:
+{variation}
+
+CURATED CONTENT FROM SOURCES:
+{content_summary}
+
+EMERGING TRENDS:
+{trends_summary}
+
+Generate a complete newsletter with:
+1. Catchy subject line
+2. Engaging introduction (2-3 sentences)
+3. Main content section with curated highlights (3-5 items with commentary)
+4. "Trends to Watch" section highlighting top 3 trends
+5. Brief closing
+
+Make it feel personal, insightful, and ready to send. Match the style reference closely."""
+
+    draft = call_llm(prompt)
+    return draft
+
+# Helper function for progress checklist
+def render_progress_checklist():
+    """Render onboarding progress checklist."""
+    tasks = [
+        ("Add Sources", len(st.session_state.sources) > 0),
+        ("Add Style Samples", len(st.session_state.style_samples) >= 3),
+        ("Configure Gmail", bool(st.session_state.get('admin_email'))),
+        ("Add Subscribers", len(st.session_state.subscribers) > 0),
+        ("Generate First Draft", st.session_state.generated_draft is not None)
+    ]
+    
+    completed = sum(1 for _, done in tasks if done)
+    total = len(tasks)
+    
+    st.markdown(f"### 🎯 Getting Started ({completed}/{total})")
+    
+    progress = completed / total
+    st.progress(progress)
+    
+    for task, done in tasks:
+        status = "✅" if done else "⏳"
+        class_name = "completed" if done else "pending"
+        st.markdown(f'<div class="checklist-item {class_name}">{status} {task}</div>', unsafe_allow_html=True)
+    
+    if completed == total:
+        st.success("🎉 All set! You're ready to create amazing newsletters!")
+
+# UI Pages
+def render_sidebar():
+    """Render sidebar navigation with enhanced styling."""
+    with st.sidebar:
+        st.markdown('<h1 style="text-align: center; font-size: 2rem;">📰 CreatorPulse</h1>', unsafe_allow_html=True)
+        st.markdown('<p style="text-align: center; opacity: 0.9;">AI-Powered Newsletter Curator</p>', unsafe_allow_html=True)
+        st.markdown("---")
+        
+        page = st.radio(
+            "Navigation",
+            ["🏠 Dashboard", "🔗 Sources", "✍️ Style Trainer", "📧 Generate Draft", "👥 Recipients", "📊 Analytics"],
+            label_visibility="collapsed"
+        )
+        
+        st.markdown("---")
+        st.markdown('<p style="text-align: center; font-size: 0.85rem; opacity: 0.8;">Version 2.0 - Enhanced UI</p>', unsafe_allow_html=True)
+        st.markdown('<p style="text-align: center; font-size: 0.75rem; opacity: 0.7;">Built with ❤️ using Streamlit</p>', unsafe_allow_html=True)
+        
+        return page
+
+def render_dashboard():
+    """Render enhanced dashboard."""
+    # Header
+    st.markdown("""
+        <div class="main-header">
+            <h1>📰 CreatorPulse Dashboard</h1>
+            <p>Welcome to your AI-powered newsletter curation platform</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Progress Checklist for new users
+    if not st.session_state.get('onboarding_completed'):
+        render_progress_checklist()
+        
+        if st.button("✅ Mark Onboarding Complete"):
+            st.session_state.onboarding_completed = True
+            st.rerun()
+        
+        st.markdown("---")
+    
+    # Metrics row with enhanced styling
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown("""
+            <div class="stats-card">
+                <div class="stats-label">Active Sources</div>
+                <div class="stats-number">{}</div>
+            </div>
+        """.format(len(st.session_state.sources)), unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+            <div class="stats-card">
+                <div class="stats-label">Subscribers</div>
+                <div class="stats-number">{}</div>
+            </div>
+        """.format(len(st.session_state.subscribers)), unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+            <div class="stats-card">
+                <div class="stats-label">Drafts Generated</div>
+                <div class="stats-number">{}</div>
+            </div>
+        """.format(len(st.session_state.feedback_history)), unsafe_allow_html=True)
+    
+    with col4:
+        if st.session_state.feedback_history:
+            acceptance_rate = (sum(1 for f in st.session_state.feedback_history if f.get('accepted', False)) 
+                             / len(st.session_state.feedback_history) * 100)
+            st.markdown("""
+                <div class="stats-card">
+                    <div class="stats-label">Acceptance Rate</div>
+                    <div class="stats-number">{:.0f}%</div>
+                </div>
+            """.format(acceptance_rate), unsafe_allow_html=True)
+        else:
+            st.markdown("""
+                <div class="stats-card">
+                    <div class="stats-label">Acceptance Rate</div>
+                    <div class="stats-number">N/A</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Quick actions with beautiful buttons
+    st.markdown("### 🚀 Quick Actions")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("🔄 Scrape Sources", use_container_width=True, type="primary"):
+            if not st.session_state.sources:
+                st.warning("⚠️ Please add sources first!")
+            else:
+                with st.spinner("Scraping sources..."):
+                    scrape_all_sources()
+                st.success("✅ Sources scraped successfully!")
+                st.rerun()
+    
+    with col2:
+        if st.button("✨ Generate Draft", use_container_width=True):
+            if not st.session_state.scraped_content:
+                st.warning("⚠️ Please scrape sources first!")
+            else:
+                with st.spinner("Generating draft..."):
+                    generate_draft()
+                st.success("✅ Draft generated!")
+                st.rerun()
+    
+    with col3:
+        if st.button("📈 Detect Trends", use_container_width=True):
+            if not st.session_state.scraped_content:
+                st.warning("⚠️ Please scrape sources first!")
+            else:
+                with st.spinner("Detecting trends..."):
+                    st.session_state.trends = detect_trends(st.session_state.scraped_content)
+                st.success(f"✅ Detected {len(st.session_state.trends)} trends!")
+                st.rerun()
+    
+    # Trending topics with beautiful cards
+    if st.session_state.trends:
+        st.markdown("---")
+        st.markdown("### 🔥 Trending Topics")
+        
+        for trend in st.session_state.trends[:3]:
+            st.markdown(f"""
+                <div class="trend-card">
+                    <div class="trend-keyword">{trend['keyword']}</div>
+                    <div class="trend-mentions">{trend['mentions']} mentions</div>
+                    <p style="margin-top: 0.5rem; color: #64748b;">{trend['description']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    # Getting started guide
+    if not st.session_state.sources:
+        st.markdown("---")
+        st.info("👋 **Getting Started:** Add your first source in the 'Sources' tab to begin!")
+
+def render_sources_page():
+    """Render sources management page with enhanced UI."""
+    st.markdown("""
+        <div class="main-header">
+            <h1>🔗 Content Sources</h1>
+            <p>Manage sources for content curation</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Add new source
+    st.markdown("### ➕ Add New Source")
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        source_type = st.selectbox("Source Type", ["YouTube Channel"])
+    
+    with col2:
+        source_identifier = st.text_input("Channel ID", placeholder="Enter channel ID")
+    
+    if st.button("Add Source", type="primary", key="add_source_btn"):
+        if source_identifier:
+            new_source = {
+                "type": source_type,
+                "identifier": source_identifier,
+                "added_at": datetime.now().isoformat(),
+                "status": "active"
+            }
+            st.session_state.sources.append(new_source)
+            st.success(f"✅ Added {source_type}: {source_identifier}")
+            st.rerun()
+        else:
+            st.error("❌ Please provide a source identifier")
+    
+    # Display existing sources with beautiful cards
+    st.markdown("---")
+    st.markdown("### 📋 Your Sources")
+    
+    if st.session_state.sources:
+        for idx, source in enumerate(st.session_state.sources):
+            col1, col2, col3 = st.columns([2, 3, 1])
+            
+            with col1:
+                st.markdown(f'<span class="badge badge-success">{source["type"]}</span>', unsafe_allow_html=True)
+            with col2:
+                st.code(source['identifier'], language=None)
+            with col3:
+                if st.button("🗑️", key=f"delete_{idx}"):
+                    st.session_state.sources.pop(idx)
+                    st.rerun()
+            
+            st.markdown("")
+    else:
+        st.markdown("""
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <h3>No sources yet</h3>
+                <p>Add your first source above to get started!</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+def render_style_trainer_page():
+    """Render style training page with enhanced UI."""
+    st.markdown("""
+        <div class="main-header">
+            <h1>✍️ Style Trainer</h1>
+            <p>Train the AI to match your unique writing voice</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Progress indicator
+    samples_count = len(st.session_state.style_samples)
+    progress = min(samples_count / 5, 1.0)
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.progress(progress)
+    with col2:
+        st.metric("Samples", f"{samples_count}/5")
+    
+    if samples_count < 5:
+        st.warning(f"⚠️ Add {5 - samples_count} more samples for optimal results")
+    else:
+        st.success("✅ You have enough samples for excellent voice matching!")
+    
+    st.markdown("---")
+    
+    # Add samples
+    st.markdown("### 📝 Add Writing Samples")
+    
+    tab1, tab2 = st.tabs(["✏️ Paste Text", "📁 Upload File"])
+    
+    with tab1:
+        sample_text = st.text_area(
+            "Paste a sample newsletter or post",
+            height=200,
+            placeholder="Paste your previous newsletter content here...\n\nTip: Include content that represents your typical writing style.",
+            key="sample_text_value"
+        )
+        
+        if st.button("Add Sample", key="add_paste", type="primary"):
+            if sample_text and len(sample_text) > 100:
+                st.session_state.style_samples.append({
+                    "text": sample_text,
+                    "added_at": datetime.now().isoformat(),
+                    "length": len(sample_text)
+                })
+                st.success("✅ Sample added successfully!")
+                st.rerun()
+            else:
+                st.error("❌ Sample must be at least 100 characters")
+    
+    with tab2:
+        uploaded_file = st.file_uploader("Upload text file", type=['txt', 'md'])
+        if uploaded_file:
+            content = uploaded_file.read().decode('utf-8')
+            st.text_area("Preview", content[:500] + "..." if len(content) > 500 else content, height=150)
+            
+            if st.button("Process Upload", key="add_upload", type="primary"):
+                st.session_state.style_samples.append({
+                    "text": content,
+                    "added_at": datetime.now().isoformat(),
+                    "length": len(content)
+                })
+                st.success("✅ File processed and sample added!")
+                st.rerun()
+    
+    # Display samples
+    st.markdown("---")
+    st.markdown("### 📚 Your Style Samples")
+    
+    if st.session_state.style_samples:
+        for idx, sample in enumerate(st.session_state.style_samples):
+            with st.expander(f"Sample {idx + 1} - {sample['length']} characters - {datetime.fromisoformat(sample['added_at']).strftime('%Y-%m-%d %H:%M')}"):
+                st.text(sample['text'][:300] + "..." if len(sample['text']) > 300 else sample['text'])
+                if st.button("🗑️ Remove", key=f"remove_sample_{idx}"):
+                    st.session_state.style_samples.pop(idx)
+                    st.rerun()
+    else:
+        st.markdown("""
+            <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <h3>No style samples yet</h3>
+                <p>Add samples above to train the AI on your voice!</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+def render_recipients_page():
+    """Render recipients management page with enhanced UI."""
+    st.markdown("""
+        <div class="main-header">
+            <h1>👥 Email Recipients</h1>
+            <p>Manage who receives your newsletter</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.info("💡 **Simple Setup:** Add your Gmail and password, then add subscriber emails. Send directly from the app!")
+    
+    st.markdown("---")
+    
+    # Gmail Settings
+    st.markdown("### 🔐 Your Gmail Settings (Sender)")
+    
+    st.warning("🔐 **For Gmail:** You need an 'App Password' (not your regular password)")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        admin_email = st.text_input(
+            "Your Gmail Address",
+            value=st.session_state.get('admin_email', ''),
+            placeholder="youremail@gmail.com",
+            help="This is YOUR Gmail address (the sender)"
+        )
+    
+    with col2:
+        admin_password = st.text_input(
+            "Gmail App Password",
+            value=st.session_state.get('admin_password', ''),
+            type="password",
+            placeholder="Your 16-char app password",
+            help="Get this from Google Account > Security > App Passwords"
+        )
+    
+    if st.button("💾 Save Gmail Settings", type="primary"):
+        if admin_email and '@' in admin_email and admin_password:
+            st.session_state.admin_email = admin_email
+            st.session_state.admin_password = admin_password
+            st.success(f"✅ Gmail settings saved: {admin_email}")
+            st.balloons()
+        else:
+            st.error("❌ Please enter both email and password")
+    
+    # Help section
+    with st.expander("❓ How to get Gmail App Password"):
+        st.markdown("""
+        **Step-by-step:**
+        1. Go to your Google Account: https://myaccount.google.com/
+        2. Click **Security** (left sidebar)
+        3. Enable **2-Step Verification** (if not already enabled)
+        4. Go back to Security, click **App passwords**
+        5. Select **Mail** and **Other (Custom name)**
+        6. Type: "CreatorPulse"
+        7. Click **Generate**
+        8. Copy the 16-character password
+        9. Paste it above ⬆️
+        
+        ✅ **Done!** Now you can send emails directly from the app.
+        """)
+    
+    # Subscribers section
+    st.markdown("---")
+    st.markdown("### 📬 Add Subscribers ")
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        subscriber_email = st.text_input(
+            "Subscriber Email",
+            placeholder="subscriber@example.com",
+            key="new_sub_email"
+        )
+    
+    with col2:
+        st.write("")
+        st.write("")
+        if st.button("Add Subscriber", type="primary", key="add_sub_btn"):
+            if subscriber_email and '@' in subscriber_email:
+                if any(sub['email'] == subscriber_email for sub in st.session_state.subscribers):
+                    st.warning(f"⚠️ {subscriber_email} already added!")
+                elif len(st.session_state.subscribers) >= 3:
+                    st.warning("⚠️ Maximum 3 subscribers for MVP")
+                else:
+                    st.session_state.subscribers.append({
+                        "email": subscriber_email,
+                        "added_at": datetime.now().isoformat()
+                    })
+                    st.success(f"✅ Added: {subscriber_email}")
+                    st.rerun()
+            else:
+                st.error("❌ Invalid email")
+    
+    # Display current recipients
+    st.markdown("---")
+    st.markdown("### 📋 Current Recipients")
+    
+    total_count = len(st.session_state.subscribers)
+    st.metric("Total Subscribers", total_count)
+    
+    # Admin status
+    if st.session_state.get('admin_email'):
+        st.markdown(f"""
+            <div class="subscriber-card">
+                <strong>👤 Admin (Sender):</strong><br>
+                ✉️ {st.session_state.admin_email}
+                <span class="badge badge-success" style="float: right;">Configured</span>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <div class="subscriber-card" style="border-left-color: #f59e0b;">
+                <strong>👤 Admin (Sender):</strong><br>
+                <span class="badge badge-warning">Not Configured</span>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Subscribers list
+    if st.session_state.subscribers:
+        st.markdown("**📬 Subscribers:**")
+        for idx, sub in enumerate(st.session_state.subscribers):
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.markdown(f"""
+                    <div class="subscriber-card">
+                        ✉️ {sub['email']}
+                    </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                st.write("")
+                if st.button("🗑️", key=f"remove_sub_{idx}"):
+                    st.session_state.subscribers.pop(idx)
+                    st.rerun()
+    else:
+        st.markdown("""
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <h3>No subscribers yet</h3>
+                <p>Add your first subscriber above!</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+def render_generate_draft_page():
+    """Render newsletter draft generation page with enhanced UI."""
+    st.markdown("""
+        <div class="main-header">
+            <h1>📧 Generate Newsletter</h1>
+            <p>Create and send your newsletter</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Prerequisites check
+    ready_to_generate = True
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if len(st.session_state.sources) == 0:
+            st.markdown('<span class="badge badge-warning">⚠️ No Sources</span>', unsafe_allow_html=True)
+            ready_to_generate = False
+        else:
+            st.markdown(f'<span class="badge badge-success">✅ {len(st.session_state.sources)} Sources</span>', unsafe_allow_html=True)
+    
+    with col2:
+        if len(st.session_state.style_samples) < 3:
+            st.markdown('<span class="badge badge-info">💡 Add 3+ Style Samples</span>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<span class="badge badge-success">✅ {len(st.session_state.style_samples)} Samples</span>', unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Generation buttons
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🔄 Scrape & Generate Draft", use_container_width=True, type="primary", disabled=not ready_to_generate):
+            with st.spinner("🔍 Scraping sources..."):
+                scrape_all_sources()
+            with st.spinner("📊 Detecting trends..."):
+                st.session_state.trends = detect_trends(st.session_state.scraped_content)
+            with st.spinner("✍️ Generating newsletter draft..."):
+                generate_draft()
+            st.success("✅ Draft generated!")
+            st.rerun()
+    
+    with col2:
+        if st.button("🎲 Regenerate Draft", use_container_width=True, disabled=not st.session_state.scraped_content):
+            with st.spinner("✍️ Regenerating..."):
+                generate_draft()
+            st.success("✅ Draft regenerated!")
+            st.rerun()
+    
+    # Display draft
+    if st.session_state.generated_draft:
+        st.markdown("---")
+        st.markdown("### ✨ Your Newsletter Draft")
+        
+        # Subject line
+        draft_lines = st.session_state.generated_draft.split('\n')
+        suggested_subject = "Your Newsletter from CreatorPulse"
+        for line in draft_lines[:5]:
+            if line.strip() and len(line) < 100:
+                suggested_subject = line.strip().replace('**', '').replace('#', '').replace('Subject:', '').strip()
+                break
+        
+        email_subject = st.text_input(
+            "📧 Email Subject Line",
+            value=suggested_subject,
+            placeholder="Enter email subject..."
+        )
+        
+        # Editable draft with preview styling
+        st.markdown('<div class="email-preview">', unsafe_allow_html=True)
+        edited_draft = st.text_area(
+            "Edit your draft below",
+            value=st.session_state.generated_draft,
+            height=500,
+            key="draft_editor"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Action buttons
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("👍 Accept Draft", use_container_width=True, type="primary"):
+                st.session_state.feedback_history.append({
+                    "draft": edited_draft,
+                    "accepted": True,
+                    "timestamp": datetime.now().isoformat()
+                })
+                st.success("✅ Draft accepted!")
+                st.balloons()
+        
+        with col2:
+            if st.button("👎 Reject & Regenerate", use_container_width=True):
+                st.session_state.feedback_history.append({
+                    "draft": st.session_state.generated_draft,
+                    "accepted": False,
+                    "timestamp": datetime.now().isoformat()
+                })
+                with st.spinner("Regenerating..."):
+                    generate_draft()
+                st.rerun()
+        
+        with col3:
+            st.download_button(
+                label="📥 Download",
+                data=edited_draft,
+                file_name=f"newsletter_{datetime.now().strftime('%Y%m%d')}.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+        
+        # Email sending section
+        st.markdown("---")
+        st.markdown("### 📤 Send Newsletter")
+        
+        gmail_configured = (
+            st.session_state.get('admin_email') and 
+            st.session_state.get('admin_password')
+        )
+        
+        if not gmail_configured:
+            st.warning("⚠️ Please configure your Gmail settings in the 'Recipients' tab first")
+        
+        total_recipients = len(st.session_state.subscribers)
+        
+        if total_recipients > 0:
+            st.success(f"✅ {total_recipients} subscriber(s) ready to receive")
+            
+            with st.expander("👥 View All Recipients"):
+                st.write(f"**From:** {st.session_state.get('admin_email', 'Not configured')}")
+                st.write("**To:**")
+                for sub in st.session_state.subscribers:
+                    st.write(f"• {sub['email']}")
+            
+            st.markdown("---")
+            
+            # Send buttons
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                if st.button(
+                    "📧 Send to All Subscribers Now",
+                    type="primary",
+                    use_container_width=True,
+                    disabled=not gmail_configured
+                ):
+                    with st.spinner(f"Sending to {total_recipients} subscriber(s)..."):
+                        result = send_to_all_subscribers(
+                            subject=email_subject,
+                            body=edited_draft
+                        )
+                    
+                    if result['success']:
+                        st.success(result['message'])
+                        
+                        with st.expander("📊 Detailed Results"):
+                            for msg in result['results']:
+                                if "✅" in msg:
+                                    st.success(msg)
+                                else:
+                                    st.error(msg)
+                        
+                        if result['sent'] > 0:
+                            st.balloons()
+                    else:
+                        st.error(result['message'])
+            
+            with col2:
+                if st.button("🧪 Test", use_container_width=True, disabled=not gmail_configured):
+                    test_email = st.session_state.get('admin_email')
+                    with st.spinner("Sending test..."):
+                        success, message = send_email_simple(
+                            sender_email=st.session_state.admin_email,
+                            sender_password=st.session_state.admin_password,
+                            recipient_email=test_email,
+                            subject=f"[TEST] {email_subject}",
+                            body=edited_draft
+                        )
+                    
+                    if success:
+                        st.success(f"✅ Test sent to {test_email}")
+                    else:
+                        st.error(message)
+            
+        else:
+            st.warning("⚠️ No subscribers added. Add subscribers in the 'Recipients' tab.")
+        
+        # Trends section
+        if st.session_state.trends:
+            st.markdown("---")
+            st.markdown("### 🔥 Trends to Watch")
+            
+            cols = st.columns(min(3, len(st.session_state.trends)))
+            for idx, trend in enumerate(st.session_state.trends[:3]):
+                with cols[idx]:
+                    st.markdown(f"""
+                        <div class="trend-card">
+                            <div class="trend-keyword">{trend['keyword']}</div>
+                            <div class="trend-mentions">{trend['mentions']} mentions</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <div class="empty-state">
+                <div class="empty-state-icon">✍️</div>
+                <h3>No draft yet</h3>
+                <p>Click 'Scrape & Generate Draft' to create your first newsletter!</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+def render_analytics_page():
+    """Render analytics page with enhanced UI."""
+    st.markdown("""
+        <div class="main-header">
+            <h1>📊 Analytics & Performance</h1>
+            <p>Track your newsletter performance</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if not st.session_state.feedback_history:
+        st.markdown("""
+            <div class="empty-state">
+                <div class="empty-state-icon">📈</div>
+                <h3>No data yet</h3>
+                <p>Generate some drafts to see analytics here!</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        st.markdown("### 🎯 Target Metrics (90 days)")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Review Time", "≤ 20 min", delta="Target")
+        with col2:
+            st.metric("Acceptance Rate", "≥ 70%", delta="Target")
+        with col3:
+            st.metric("Engagement Lift", "≥ 2×", delta="Target")
+        
+        return
+    
+    # Calculate metrics
+    total_drafts = len(st.session_state.feedback_history)
+    accepted_drafts = sum(1 for f in st.session_state.feedback_history if f.get('accepted', False))
+    acceptance_rate = (accepted_drafts / total_drafts * 100) if total_drafts > 0 else 0
+    
+    # Display metrics with enhanced styling
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown(f"""
+            <div class="stats-card">
+                <div class="stats-label">Total Drafts</div>
+                <div class="stats-number">{total_drafts}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+            <div class="stats-card">
+                <div class="stats-label">Accepted Drafts</div>
+                <div class="stats-number">{accepted_drafts}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+            <div class="stats-card">
+                <div class="stats-label">Acceptance Rate</div>
+                <div class="stats-number">{acceptance_rate:.1f}%</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Draft history with timeline
+    st.markdown("---")
+    st.markdown("### 📝 Draft History")
+    
+    for idx, item in enumerate(reversed(st.session_state.feedback_history)):
+        status = "✅ Accepted" if item.get('accepted', False) else "❌ Rejected"
+        timestamp = datetime.fromisoformat(item['timestamp']).strftime("%Y-%m-%d %H:%M")
+        
+        st.markdown(f"""
+            <div class="timeline-item">
+                <strong>Draft #{total_drafts - idx}</strong> - {status} - {timestamp}
+            </div>
+        """, unsafe_allow_html=True)
+        
+        with st.expander(f"View Draft #{total_drafts - idx}"):
+            st.text_area("Content", item['draft'], height=200, key=f"history_{idx}", disabled=True)
+
+# Helper functions
+def scrape_all_sources():
+    """Scrape all configured sources."""
+    st.session_state.scraped_content = []
+    
+    for source in st.session_state.sources:
+        try:
+            if source['type'] == "YouTube Channel":
+                content = scrape_youtube_channel(source['identifier'])
+                st.session_state.scraped_content.extend(content)
+        except Exception as e:
+            st.error(f"Error scraping {source['identifier']}: {str(e)}")
+
+def generate_draft():
+    """Generate newsletter draft."""
+    style_texts = [s['text'] for s in st.session_state.style_samples]
+    draft = generate_newsletter_draft(
+        st.session_state.scraped_content,
+        st.session_state.trends,
+        style_texts
+    )
+    st.session_state.generated_draft = draft
+    if "draft_editor" in st.session_state:
+        del st.session_state["draft_editor"]
+
+# Main application
+def main():
+    try:
+        page = render_sidebar()
+        
+        if page == "🏠 Dashboard":
+            render_dashboard()
+        elif page == "🔗 Sources":
+            render_sources_page()
+        elif page == "✍️ Style Trainer":
+            render_style_trainer_page()
+        elif page == "📧 Generate Draft":
+            render_generate_draft_page()
+        elif page == "👥 Recipients":
+            render_recipients_page()
+        elif page == "📊 Analytics":
+            render_analytics_page()
+            
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+        st.exception(e)
+
+if __name__ == "__main__":
+    main()
