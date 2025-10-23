@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorPulse Tech Stack</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 2cm;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            margin: -40px -40px 40px -40px;
+            border-radius: 0;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            font-size: 18px;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+
+        .meta-info div {
+            font-size: 14px;
+        }
+
+        .meta-info strong {
+            color: #667eea;
+        }
+
+        h2 {
+            color: #667eea;
+            font-size: 24px;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        h3 {
+            color: #764ba2;
+            font-size: 18px;
+            margin: 20px 0 10px 0;
+        }
+
+        h4 {
+            color: #555;
+            font-size: 16px;
+            margin: 15px 0 8px 0;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 5px 5px 5px 0;
+        }
+
+        .badge-primary {
+            background: #e3e8ff;
+            color: #667eea;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .info-box {
+            background: #e3e8ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box h4 {
+            color: #667eea;
+            margin-top: 0;
+        }
+
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .pros, .cons {
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .pros {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+        }
+
+        .cons {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+        }
+
+        .pros h4, .cons h4 {
+            margin-top: 0;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .download-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            margin: 40px 0;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <button class="download-btn no-print" onclick="window.print()">📥 Download PDF</button>
+
+    <div class="container">
+        <div class="header">
+            <h1>📰 CreatorPulse</h1>
+            <div class="subtitle">Technical Stack Documentation</div>
+        </div>
+
+        <div class="meta-info">
+            <div><strong>Version:</strong> 2.0 MVP</div>
+            <div><strong>Architecture:</strong> Monolithic Web Application</div>
+            <div><strong>Deployment:</strong> Streamlit Cloud</div>
+        </div>
+
+        <h2>🎯 Frontend</h2>
+        <h3>Framework</h3>
+        <ul>
+            <li><strong>Streamlit 1.28+</strong>
+                <ul>
+                    <li>Rapid prototyping web interface</li>
+                    <li>Built-in components for forms, buttons, file uploads</li>
+                    <li>Session state management for user data persistence</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Styling</h3>
+        <ul>
+            <li><strong>Custom CSS (inline)</strong>
+                <ul>
+                    <li>Google Fonts (Inter)</li>
+                    <li>Gradient designs and modern UI components</li>
+                    <li>Responsive layout with column-based design</li>
+                </ul>
+            </li>
+        </ul>
+
+        <div class="section-divider"></div>
+
+        <h2>⚙️ Backend</h2>
+
+        <h3>Core Language</h3>
+        <ul>
+            <li><strong>Python 3.8+</strong>
+                <ul>
+                    <li>Primary application logic</li>
+                    <li>Data processing and manipulation</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>LLM Integration</h3>
+        <ul>
+            <li><strong>Groq API with Llama 3.3 70B Versatile</strong>
+                <ul>
+                    <li>Newsletter draft generation</li>
+                    <li>Content curation and summarization</li>
+                    <li>Style matching based on training samples</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Data Processing</h3>
+        <ul>
+            <li><strong>pandas</strong> - Data manipulation and CSV handling</li>
+            <li><strong>Collections (Counter)</strong> - Trend detection and keyword frequency analysis</li>
+            <li><strong>datetime</strong> - Timestamp management and scheduling</li>
+            <li><strong>re (regex)</strong> - Text parsing and pattern matching</li>
+            <li><strong>json</strong> - Data serialization</li>
+        </ul>
+
+        <h3>Web Scraping</h3>
+        <ul>
+            <li><strong>feedparser</strong> - YouTube RSS feed parsing</li>
+            <li><strong>requests</strong> - HTTP requests for content fetching</li>
+            <li><strong>ssl/certifi</strong> - Secure SSL context for API calls</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <h2>📧 Email Infrastructure</h2>
+        <ul>
+            <li><strong>smtplib</strong> - SMTP email protocol implementation</li>
+            <li><strong>email.mime</strong> - Email message formatting (text, multipart)</li>
+            <li><strong>Gmail SMTP Server</strong> - Email delivery service
+                <ul>
+                    <li>Server: smtp.gmail.com:587</li>
+                    <li>TLS encryption</li>
+                    <li>App Password authentication</li>
+                </ul>
+            </li>
+        </ul>
+
+        <div class="info-box">
+            <h4>📌 SMTP Implementation Details</h4>
+            <p><strong>Direct SMTP for MVP:</strong> This implementation uses Gmail's SMTP server directly without third-party email services (SendGrid, Mailgun, AWS SES).</p>
+            
+            <div class="pros-cons">
+                <div class="pros">
+                    <h4>✅ Advantages</h4>
+                    <ul>
+                        <li>Free (no service costs)</li>
+                        <li>Simple setup</li>
+                        <li>Perfect for MVP testing</li>
+                        <li>No API integrations needed</li>
+                    </ul>
+                </div>
+                <div class="cons">
+                    <h4>❌ Limitations</h4>
+                    <ul>
+                        <li>Gmail rate limits (~500/day)</li>
+                        <li>Lower deliverability vs dedicated services</li>
+                        <li>No email analytics (opens/clicks)</li>
+                        <li>Account suspension risk for mass sending</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h2>📊 Content Sources</h2>
+        <ul>
+            <li><strong>YouTube RSS Feeds</strong> - Video content aggregation
+                <ul>
+                    <li>Channel-based feed parsing</li>
+                    <li>Video metadata extraction (title, summary, links)</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>💾 Data Storage</h2>
+        <ul>
+            <li><strong>Streamlit Session State</strong> - In-memory data persistence
+                <ul>
+                    <li>User sources</li>
+                    <li>Style samples</li>
+                    <li>Subscriber lists</li>
+                    <li>Draft history</li>
+                    <li>Analytics data</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>🔒 Security</h2>
+        <ul>
+            <li><strong>SSL/TLS</strong> - Encrypted connections</li>
+            <li><strong>Gmail App Passwords</strong> - Secure authentication (no plain text passwords)</li>
+            <li><strong>certifi</strong> - Certificate validation</li>
+        </ul>
+
+        <h2>🛠️ Development Tools</h2>
+        <ul>
+            <li><strong>random</strong> - Seed generation and variation modes</li>
+            <li><strong>typing</strong> - Type hints for code clarity</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <h2>🚀 Deployment</h2>
+        <h3>Streamlit Cloud (Recommended for MVP)</h3>
+        <ul>
+            <li>Free tier available</li>
+            <li>Easy deployment from GitHub</li>
+            <li>Built-in hosting and SSL</li>
+            <li>Environment variable management</li>
+            <li>Zero DevOps overhead</li>
+        </ul>
+
+        <h2>🌐 External APIs & Services</h2>
+        <ul>
+            <li><strong>Groq API</strong> - LLM inference (requires API key)</li>
+            <li><strong>Gmail SMTP</strong> - Email delivery (requires app password)</li>
+            <li><strong>YouTube RSS</strong> - Content feeds (no API key required)</li>
+        </ul>
+
+        <div class="section-divider"></div>
+
+        <h2>💻 Development Environment</h2>
+
+        <h3>Package Management</h3>
+        <div class="code-block">
+pip install streamlit pandas groq feedparser certifi requests
+        </div>
+
+        <h3>Environment Variables</h3>
+        <div class="code-block">
+GROQ_API_KEY=your_api_key_here
+GMAIL_SENDER=your_email@gmail.com
+GMAIL_APP_PASSWORD=your_16_char_password
+        </div>
+
+        <h2>🏗️ Architecture Pattern</h2>
+        <ul>
+            <li><strong>Monolithic Application</strong> - Single Streamlit app</li>
+            <li><strong>Session-based State</strong> - No database required for MVP</li>
+            <li><strong>Synchronous Processing</strong> - Real-time content generation</li>
+            <li><strong>Direct SMTP</strong> - No email service abstraction</li>
+        </ul>
+
+        <h2>📦 Key Dependencies Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Package</th>
+                    <th>Version</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Web Framework</td>
+                    <td>streamlit</td>
+                    <td>1.28+</td>
+                    <td>UI/UX</td>
+                </tr>
+                <tr>
+                    <td>LLM</td>
+                    <td>groq</td>
+                    <td>Latest</td>
+                    <td>Content generation</td>
+                </tr>
+                <tr>
+                    <td>Data</td>
+                    <td>pandas</td>
+                    <td>1.5+</td>
+                    <td>Data manipulation</td>
+                </tr>
+                <tr>
+                    <td>Scraping</td>
+                    <td>feedparser</td>
+                    <td>6.0+</td>
+                    <td>RSS parsing</td>
+                </tr>
+                <tr>
+                    <td>Email</td>
+                    <td>smtplib</td>
+                    <td>Built-in</td>
+                    <td>Email sending</td>
+                </tr>
+                <tr>
+                    <td>Security</td>
+                    <td>certifi</td>
+                    <td>Latest</td>
+                    <td>SSL certificates</td>
+                </tr>
+                <tr>
+                    <td>HTTP</td>
+                    <td>requests</td>
+                    <td>2.31+</td>
+                    <td>Web requests</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="section-divider"></div>
+
+        <div class="info-box">
+            <h4>📊 Project Metrics</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                <div>
+                    <strong>Tech Stack Complexity:</strong><br>
+                    <span class="badge badge-success">Low-Medium</span>
+                </div>
+                <div>
+                    <strong>Setup Time:</strong><br>
+                    <span class="badge badge-success">< 1 hour</span>
+                </div>
+                <div>
+                    <strong>Deployment Complexity:</strong><br>
+                    <span class="badge badge-success">Low</span>
+                </div>
+                <div>
+                    <strong>Scalability:</strong><br>
+                    <span class="badge badge-primary">MVP-ready</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>CreatorPulse Newsletter Curator</strong></p>
+            <p>AI-Powered Newsletter Curation Platform</p>
+            <p style="margin-top: 10px; font-size: 12px;">Generated: <script>document.write(new Date().toLocaleDateString())</script></p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-print dialog on load (optional)
+        // window.onload = function() { window.print(); }
+    </script>
+</body>
+</html>
