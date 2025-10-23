@@ -487,7 +487,7 @@ def call_llm(prompt: str, max_tokens: int = 2000) -> str:
     try:
         from groq import Groq
         
-        client = Groq(api_key="                                   ")
+        client = Groq(api_key=" ---------------           ---------------       ")
         
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
